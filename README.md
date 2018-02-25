@@ -37,3 +37,8 @@ If you do not have these, there is a script that you can run that will make inst
 	The sudokuhax injection .zip
 
 7. Follow the rest of the guide from there, and you should be done.
+
+
+
+TODO:
+Add python checks to seedminer script and run installer if they are missing
