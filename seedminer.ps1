@@ -1,64 +1,134 @@
-$baseDir = Get-Location
+function getID0 {
+    param([string]$N3DS_Folder)
+    return (Get-ChildItem -Path ($N3DS_Folder)* -Exclude [pP]* | Where-Object -FilterScript {$_.Name -match "^[0-9a-f]{32}" -and $_.Name.Length -eq 32})
+}
+function getID1 {
+    param([string]$ID0_Folder)
+    return (Get-ChildItem -Path ($ID0_Folder)* -Exclude [pP]* | Where-Object -FilterScript {$_.Name -match "^[0-9a-f]{32}" -and $_.Name.Length -eq 32})
+}
+function IsOneID0 {
+    param([string]$N3DS_Folder)
+    $id0 = GetID0 $N3DS_Folder
+    if ($id0.Count -ne 1) {
+        return $False;    
+    }
+    return $True
+}
+function IsOneID1 {
+    param([string]$ID0_Folder)
+    $id1 = GetID1 $ID0_Folder
+    if ($id1.Count -ne 1) {
+        return $False;
+    }
+    return $True
+}
+function GetDriveLetter {
+    $drive = Read-Host -Prompt "Please enter the drive letter that your SD card is mounted to below (only the letter, no colon (:)or slash (/)"
+    return $drive
+}
+function GenerateFreshNintendo3DS {
+    $exitTrigger = 0
+  while ($exitTrigger -ne 1) {
+    $drive = GetDriveLetter;
+    
+    $Nintendo3ds = $drive + ":/Nintendo 3ds";
+    if (-not [System.IO.Directory]::Exists($Nintendo3ds)) {
+        Write-Host "I can't find your Nintendo 3ds folder on that drive...please check your drive letters and try again.`nIf the drive letter was right, make sure you used this SD card in your Nintendo 3ds/2ds"
+        exit(1);
+    }    
+  Write-Host "`nMaking sure you only have 1 ID0 folder in the Nintendo 3ds folder on your SD.`n"
 
-"This script assumes that you are not dumping your own files, and that you have had someone else give you your 'movable_part1.sed'."
-  $drive = Read-Host -Prompt "Please enter the drive letter that your SD card is mounted to below (only the letter, no colon (:)or slash (/)"
-  $Nintendo3ds = ($drive + ":/Nintendo 3ds")
-  echo $Nintendo3ds
+  if ( IsOneID0 $Nintendo3ds ) {
+     $id0 = GetID0 $Nintendo3ds
 
-  ## generate fresh Nintendo 3DS folder ##
-  "Renaming Nintendo 3DS folder to ensure correct ID0..."
-  " "
-  Rename-Item "$Nintendo3ds" $Nintendo3ds"_BACKUP"
-  "Please remove the SD card, then insert it into the 3ds and turn the 3ds on"
-  "When the 3ds is fully booted to the home menu, turn the 3ds off and put the SD back into the computer"
-  Read-Host -Prompt "Once the SD is returned to the computer, Press <enter>"
-  
-  
-  $drive = Read-Host -Prompt "Please enter the drive letter that your SD card is now mounted to below (only the letter, no colon (:)or slash (/)"
-  $Nintendo3ds = ($drive + ":/Nintendo 3ds")
+    if ( IsOneID1 $id0 ) {
+      return $Nintendo3ds
+      
+    }
+  }
+  if ([System.IO.Directory]::Exists($Nintendo3ds+"_FRESH")) {
+    if ([System.IO.Directory]::Exists($Nintendo3ds)) {
+     if ([System.IO.Directory]::Exists($Nintendo3ds+"_BACKUP")) {
+        Read-Host -Prompt "$($Nintendo3ds)_FRESH , _BACKUP, and normal directories found, if you can debug, find the original nintendo 3ds folder and remove the others and rerun this script.`nPress Enter to Continue"
+     }else{
+        Read-Host -Prompt "$($Nintendo3ds)_FRESH and normal directories found. Assuming you cancelled mid process. renaming directories. `nYou will need to enter the drive letter after this.`nPress Enter to Continue"
+        Rename-Item "$Nintendo3ds" $Nintendo3ds"_BACKUP"
+        Rename-Item $Nintendo3ds"_FRESH" $Nintendo3ds
+     }
+    }else{
+        Read-Host -Prompt "$($Nintendo3ds)_FRESH and _BACKUP directories found. Assuming you cancelled mid process. renaming directories. `nYou will need to enter the drive letter after this.`nPress Enter to Continue"
+        Rename-Item $Nintendo3ds"_FRESH" $Nintendo3ds
+    }
+  }else{
+  ## check for existance of _BACKUP folder
+       if ([System.IO.Directory]::Exists($Nintendo3ds+"_BACKUP")) {
 
-  $id0 = Get-ChildItem -Path ($Nintendo3ds)* -Exclude [pP]*
-  $id1 = Get-ChildItem -Path ($id0)* -Exclude [pP]*
-  $DSiWare = [io.Path]::combine(($id1),"Nintendo DSiWare")
-  
+            Read-Host -Prompt "$($Nintendo3ds)_BACKUP found. Please rename this folder and press <enter>"
+            
+        } else {
 
-  Rename-Item "$Nintendo3ds" $Nintendo3ds"_FRESH"
-  Rename-Item $Nintendo3ds"_BACKUP" "$Nintendo3ds"
-  $Nintendo3ds="$Nintendo3ds/"
-  echo $Nintendo3ds
+          "Renaming Nintendo 3DS folder to ensure correct ID0..."
+            " "
+           Rename-Item "$Nintendo3ds" $Nintendo3ds"_BACKUP"
+            Write-Host "Please remove the SD card, then insert it into the 3ds and turn the 3ds on"
+            Write-Host "When the 3ds is fully booted to the home menu, turn the 3ds off and put the SD back into the computer"
+            Read-Host -Prompt "Once the SD is returned to the computer, Press <enter>"
+        }
+  }
+  }
+}
+function RestoreNintendo3DS {
+    param([string]$Drive)
+        $Nintendo3ds = ($drive + ":/Nintendo 3ds/")
 
-  ##"Please ensure that you only have a Private folder and a folder with random numbers and letters in the Nintendo 3ds folder of your sd card before continuing."
-  ##C:\Windows\System32\cmd.exe /c pause
-
-
-"\nChecking for required files, please wait...\n"
+ if ([System.IO.Directory]::Exists($Nintendo3ds+"_BACKUP")) {
+    if (-not [System.IO.Directory]::Exists($Nintendo3ds+"_FRESH")) {
+     Rename-Item "$Nintendo3ds" $Nintendo3ds"_FRESH"
+    }else{
+     Rename-Item "$Nintendo3ds" $Nintendo3ds"_ABCDEFGHIJ"
+    }
+    Rename-Item $Nintendo3ds"_BACKUP" $Nintendo3ds
+ }
+}
+function VerifyMiningFiles {
+$missingCount = 0
+" "
+"Checking for required files, please wait..."
+" "
 ## movable_part1
-" "
-if ([System.IO.File]::Exists("./movable_part1.sed")) {
-"movable_part1.sed found!"
-} 
-else {
-"movable_part1.sed missing. Close this window and get your movable_part1.sed from somebody"
+    if ([System.IO.File]::Exists("./movable_part1.sed")) {
+    "movable_part1.sed found!"
+    } 
+    else {
+    "movable_part1.sed missing. Close this window and get your movable_part1.sed from somebody"
+    $missingCount++
+    }
+    ## seedminer_launcher
+    " "
+    if ([System.IO.File]::Exists("./seedminer_launcher.py")) {
+    "Seedminer found!"
+    }
+    else{
+    "Seedminer program missing. download it from https://github.com/zoogie/seedminer/releases/latest "
+    "put this script and the movable_part1.sed in the same folder as seedminer_launcher.py"
+    $missingCount++
+    }
+    return $missingCount
 }
-## seedminer_launcher
-" "
-if ([System.IO.File]::Exists("./seedminer_launcher.py")) {
-"Seedminer found!"
-}
-else{
-"Seedminer program missing. download it from https://github.com/zoogie/seedminer/releases/latest 
-put this script and the movable_part1.sed in the same folder as seedminer_launcher.py"
-}
-" "
+function VerifyMiningComplete {
 ## movable.sed
-if ([System.IO.File]::Exists("./movable.sed")) {
-"movable.sed found...skipping the mining portion"
+    if([System.IO.File]::Exists("./Upload/movable.sed")) {
+        "movable.sed found"
+        return $True
+    }elseif ([System.IO.File]::Exists("./movable.sed")) {
+        copy-item -Path "./movable.sed" -Destination "./Upload/"
+        return $True
+    }else{
+        return $False
+    }
 }
-else{
-Read-Host -Prompt "address any issues listed above then Press <enter>"
-
-  "Adding ID0 to movable_part1.sed\n"
-  py -2 "./seedminer_launcher.py" id0 $id0.Name
+function HandleDSiWare {
+    param([string]$DSiWare)
 
   "Copying all DSiWare titles from SD to ./Upload/\n"
   copy-item -Path $DSiWare -Destination "./Upload/" -Recurse
@@ -67,17 +137,70 @@ Read-Host -Prompt "address any issues listed above then Press <enter>"
 
   $dsiwareBinName = Split-Path -Path "/Upload/($dsiwareBin)" -leaf
 
+
+}
+function AddID0 {
+    param([string]$iD0)
+
+  "Adding ID0 to movable_part1.sed\n"
+  py -2 "./seedminer_launcher.py" id0 $iD0.Name
+  " "
+}
+
+function Mining {
+
   $method = Read-Host -Prompt "Do you wish to do 'gpu' or 'cpu' based mining?
   Note: while GPU mining is generally faster, you need the hardware for it. If you have integrated graphics or are unsure, you should select CPU or ask for assistance.
 
   If someone else is doing the mining for you, send them your movable_part1.sed and close this window."
 
   py -2 "./seedminer_launcher.py" $method
+ while (-not (VerifyMiningComplete) ) {
+    sleep 10
+ }
 }
-copy-item -Path "./movable.sed" -Destination "./Upload/"
-
+function Patching {
 ##"Please follow the instructions on: https://jenkins.nelthorya.net/job/DSIHaxInjector/build?delay=0sec and place the result in a folder named 'final' (no quotes). Rename this so that it is identical to the original backup."
 
 Read-Host -Prompt "Please follow the instructions on: https://jenkins.nelthorya.net/job/DSIHaxInjector/build?delay=0sec and place the result in a folder named 'final' (no quotes). Rename this so that it is identical to the original backup."
 
 copy-item -Path [io.Path]::combine("./final/", $DSiWare), $DSiWare
+
+}
+
+
+$baseDir = Get-Location
+
+"This script assumes that you are not dumping your own files, and that you have had someone else give you your 'movable_part1.sed'."
+
+     $Nintendo3ds = GenerateFreshNintendo3DS 
+     Write-Host "Alright! we now know what your ID0 and ID1 folders are, lets get started!"
+     $id0 = GetID0 $Nintendo3ds
+     $id1 = GetID1 $id0
+     
+     $DSiWare = [io.Path]::combine(($id1),"Nintendo DSiWare")
+    
+  if (-Not [System.IO.Directory]::Exists($DSiWare)) {
+    Write-Host "Oh No! DSiWare Folder not found. Please backup your DSiWare game to the SD and restart this script."
+    Write-Host "Instructions for copying DSiWare:`nPut your SD into your 3ds and turn it on.`nGo to System Settings`nGo to Data Management`nGo To DSiWare`nClick your game`nClick Copy`n"
+    Read-Host -Prompt "Press Enter to Continue"
+   exit(1)
+  }
+    HandleDSiWare $DSiWare
+
+$missing = VerifyMiningFiles
+"Missing $missing Files"
+if ($missing -gt 0) {
+    "Please correct the above issues and restart the script"
+    Read-Host -Prompt "Press Enter to Continue"
+   exit(1)
+}
+
+if (VerifyMiningComplete) {
+    "Mining seems to have already been completed, moving to patching"
+    Patching
+}else{
+    AddID0 $id0
+    Mining
+    Patching
+}
