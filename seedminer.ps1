@@ -92,33 +92,31 @@ function RestoreNintendo3DS {
 }
 function VerifyMiningFiles {
 $missingCount = 0
-" "
-"Checking for required files, please wait..."
-" "
+Write-Host "`nChecking for required files in $(Resolve-Path ./) , please wait...`n"
 ## movable_part1
-    if ([System.IO.File]::Exists("./movable_part1.sed")) {
-    "movable_part1.sed found!"
+    if ([System.IO.File]::Exists("$pwd/movable_part1.sed")) {
+    Write-Host "movable_part1.sed found!"
     } 
     else {
-    "movable_part1.sed missing. Close this window and get your movable_part1.sed from somebody"
-    $missingCount++
+    Write-Host "movable_part1.sed missing. Close this window and get your movable_part1.sed from somebody"
+        $missingCount=$missingCount+1
     }
     ## seedminer_launcher
     " "
-    if ([System.IO.File]::Exists("./seedminer_launcher.py")) {
-    "Seedminer found!"
+    if ([System.IO.File]::Exists("$pwd/seedminer_launcher.py")) {
+    Write-Host "Seedminer found!"
     }
     else{
-    "Seedminer program missing. download it from https://github.com/zoogie/seedminer/releases/latest "
-    "put this script and the movable_part1.sed in the same folder as seedminer_launcher.py"
-    $missingCount++
+        Write-Host "Seedminer program missing. download it from https://github.com/zoogie/seedminer/releases/latest "
+        Write-Host "put this script and the movable_part1.sed in the same folder as seedminer_launcher.py"
+        $missingCount=$missingCount+1
     }
     return $missingCount
 }
 function VerifyMiningComplete {
 ## movable.sed
     if([System.IO.File]::Exists("./Upload/movable.sed")) {
-        "movable.sed found"
+          Write-Host "movable.sed found"
         return $True
     }elseif ([System.IO.File]::Exists("./movable.sed")) {
         copy-item -Path "./movable.sed" -Destination "./Upload/"
@@ -130,21 +128,21 @@ function VerifyMiningComplete {
 function HandleDSiWare {
     param([string]$DSiWare)
 
-  "Copying all DSiWare titles from SD to ./Upload/\n"
+  Write-Host "Copying all DSiWare titles from SD to ./Upload/"
   copy-item -Path $DSiWare -Destination "./Upload/" -Recurse
 
   $dsiwareBin = Get-ChildItem -Path "./Upload/"*
 
-  $dsiwareBinName = Split-Path -Path "/Upload/($dsiwareBin)" -leaf
+  $dsiwareBinName = Split-Path -Path "./Upload/($dsiwareBin)" -leaf
 
 
 }
 function AddID0 {
     param([string]$iD0)
 
-  "Adding ID0 to movable_part1.sed\n"
-  py -2 "./seedminer_launcher.py" id0 $iD0.Name
-  " "
+  Write-Host "Adding ID0 ($iD0) to movable_part1.sed`n"
+  py -2 "./seedminer_launcher.py" id0 $iD0
+  
 }
 
 function Mining {
@@ -170,8 +168,9 @@ copy-item -Path [io.Path]::combine("./final/", $DSiWare), $DSiWare
 
 
 $baseDir = Get-Location
+   Write-Host "running in $baseDir"
 
-"This script assumes that you are not dumping your own files, and that you have had someone else give you your 'movable_part1.sed'."
+  Write-Host "This script assumes that you are not dumping your own files, and that you have had someone else give you your 'movable_part1.sed'."
 
      $Nintendo3ds = GenerateFreshNintendo3DS 
      Write-Host "Alright! we now know what your ID0 and ID1 folders are, lets get started!"
@@ -183,24 +182,24 @@ $baseDir = Get-Location
   if (-Not [System.IO.Directory]::Exists($DSiWare)) {
     Write-Host "Oh No! DSiWare Folder not found. Please backup your DSiWare game to the SD and restart this script."
     Write-Host "Instructions for copying DSiWare:`nPut your SD into your 3ds and turn it on.`nGo to System Settings`nGo to Data Management`nGo To DSiWare`nClick your game`nClick Copy`n"
-    Read-Host -Prompt "Press Enter to Continue"
+    Read-Host -Prompt "Press Enter to exit."
    exit(1)
   }
     HandleDSiWare $DSiWare
 
 $missing = VerifyMiningFiles
-"Missing $missing Files"
+Write-Host "Missing $missing Files"
 if ($missing -gt 0) {
-    "Please correct the above issues and restart the script"
+    Write-Host "Please correct the above issues and restart the script"
     Read-Host -Prompt "Press Enter to Continue"
    exit(1)
 }
 
 if (VerifyMiningComplete) {
-    "Mining seems to have already been completed, moving to patching"
+    Write-Host "Mining seems to have already been completed, moving to patching"
     Patching
 }else{
-    AddID0 $id0
+    AddID0 $id0.Name
     Mining
     Patching
 }
