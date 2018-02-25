@@ -92,7 +92,7 @@ function RestoreNintendo3DS {
 }
 function VerifyMiningFiles {
 $missingCount = 0
-Write-Host "`nChecking for required files in $(Resolve-Path ./) , please wait...`n"
+Write-Host "`nChecking for required files, please wait...`n"
 ## movable_part1
     if ([System.IO.File]::Exists("$pwd/movable_part1.sed")) {
     Write-Host "movable_part1.sed found!"
@@ -115,11 +115,11 @@ Write-Host "`nChecking for required files in $(Resolve-Path ./) , please wait...
 }
 function VerifyMiningComplete {
 ## movable.sed
-    if([System.IO.File]::Exists("./Upload/movable.sed")) {
+    if([System.IO.File]::Exists("$pwd/Upload/movable.sed")) {
           Write-Host "movable.sed found"
         return $True
-    }elseif ([System.IO.File]::Exists("./movable.sed")) {
-        copy-item -Path "./movable.sed" -Destination "./Upload/"
+    }elseif ([System.IO.File]::Exists("$pwd/movable.sed")) {
+        copy-item -Path "$pwd/movable.sed" -Destination "$pwd/Upload/"
         return $True
     }else{
         return $False
@@ -156,13 +156,14 @@ function Mining {
  while (-not (VerifyMiningComplete) ) {
     sleep 10
  }
+ Write-Host "Mining Complete!"
 }
 function Patching {
 ##"Please follow the instructions on: https://jenkins.nelthorya.net/job/DSIHaxInjector/build?delay=0sec and place the result in a folder named 'final' (no quotes). Rename this so that it is identical to the original backup."
 
-Read-Host -Prompt "Please follow the instructions on: https://jenkins.nelthorya.net/job/DSIHaxInjector/build?delay=0sec and place the result in a folder named 'final' (no quotes). Rename this so that it is identical to the original backup."
+Read-Host -Prompt "Please follow the instructions on: https://jenkins.nelthorya.net/job/DSIHaxInjector/build?delay=0sec and place the result in a folder named 'final' (no quotes). Rename this so that it is identical to the original backup.`nPress Enter to continue"
 
-copy-item -Path [io.Path]::combine("./final/", $DSiWare), $DSiWare
+copy-item -Path [io.Path]::combine("$pwd/final/", $DSiWare), $DSiWare
 
 }
 
