@@ -166,12 +166,25 @@ Read-Host -Prompt "Please follow the instructions on: https://jenkins.nelthorya.
 copy-item -Path [io.Path]::combine("$pwd/final/", $DSiWare), $DSiWare
 
 }
+function PythonCheck { 
 
+if (get-command python) {
+    return $True
+}
+return $False
+
+
+}
 
 $baseDir = Get-Location
-   Write-Host "running in $baseDir"
 
-  Write-Host "This script assumes that you are not dumping your own files, and that you have had someone else give you your 'movable_part1.sed'."
+  ##Write-Host "running in $baseDir"
+  Write-Host "Checking to see if Python is installed"
+  if (-not (PythonCheck)) {
+    Write-Host "Python is not installed, Launching python installation script`n"
+    ./python_3_and_2_installer.ps1
+  }
+  Write-Host "`nThis script assumes that you are not dumping your own files, and that you have had someone else give you your 'movable_part1.sed'."
 
      $Nintendo3ds = GenerateFreshNintendo3DS 
      Write-Host "Alright! we now know what your ID0 and ID1 folders are, lets get started!"
